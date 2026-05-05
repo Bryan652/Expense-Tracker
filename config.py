@@ -4,7 +4,7 @@ from pathlib import Path
 
 # Load .env file
 env_path = Path(__file__).parent / '.env'
-load_dotenv(env_path)
+load_dotenv(env_path, override=True)
 
 class Settings:
     """FastAPI Settings"""
