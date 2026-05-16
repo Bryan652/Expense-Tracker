@@ -90,6 +90,21 @@ class Database:
         );
         """
 
+        create_categories_table = """
+        CREATE TABLE IF NOT EXISTS categories (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            name VARCHAR(50) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+
+        create_categories_unique_index = """
+        CREATE UNIQUE INDEX IF NOT EXISTS categories_user_lower_name_idx
+        ON categories (user_id, lower(name));
+        """
+
         create_expenses_table = """
         CREATE TABLE IF NOT EXISTS expenses (
             id SERIAL PRIMARY KEY,
@@ -106,6 +121,8 @@ class Database:
         try:
             cursor = self.connection.cursor()
             cursor.execute(create_users_table)
+            cursor.execute(create_categories_table)
+            cursor.execute(create_categories_unique_index)
             cursor.execute(create_expenses_table)
             self.connection.commit()
             cursor.close()
@@ -114,6 +131,34 @@ class Database:
             self.connection.rollback()
             print(f"✗ Error initializing schema: {error}")
             raise
+
+    # Category operations
+    def get_categories(self, user_id: int) -> List[Dict[str, Any]]:
+        """Get all categories for a user"""
+        query = "SELECT id, name, created_at FROM categories WHERE user_id = %s ORDER BY name ASC"
+        return self.execute_query(query, (user_id,))
+
+    def get_category_by_name(self, user_id: int, name: str) -> Optional[Dict[str, Any]]:
+        """Get a category by name (case-insensitive)"""
+        query = "SELECT id, name, created_at FROM categories WHERE user_id = %s AND lower(name) = lower(%s)"
+        results = self.execute_query(query, (user_id, name))
+        return results[0] if results else None
+
+    def create_category(self, user_id: int, name: str) -> Dict[str, Any]:
+        """Create a new category"""
+        query = """
+        INSERT INTO categories (user_id, name)
+        VALUES (%s, %s)
+        RETURNING id, name, created_at
+        """
+        return self.execute_insert_with_return(query, (user_id, name))
+
+    def ensure_category(self, user_id: int, name: str) -> Dict[str, Any]:
+        """Get or create a category by name"""
+        existing = self.get_category_by_name(user_id, name)
+        if existing:
+            return existing
+        return self.create_category(user_id, name)
 
     # User operations
     def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
@@ -212,6 +257,15 @@ class Database:
         """Get total spent by user"""
         query = "SELECT COALESCE(SUM(amount), 0)::float as total FROM expenses WHERE user_id = %s"
         results = self.execute_query(query, (user_id,))
+        return results[0]['total'] if results else 0.0
+
+    def get_total_spent_between(self, user_id: int, start_date: str, end_date: str) -> float:
+        """Get total spent by user within a date range"""
+        query = (
+            "SELECT COALESCE(SUM(amount), 0)::float as total "
+            "FROM expenses WHERE user_id = %s AND date >= %s AND date <= %s"
+        )
+        results = self.execute_query(query, (user_id, start_date, end_date))
         return results[0]['total'] if results else 0.0
 
 # Initialize global database instance

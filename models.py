@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from datetime import datetime, date
+from datetime import datetime, date as dt_date
 from typing import Optional
 
 # User Models
@@ -26,13 +26,13 @@ class ExpenseCreate(BaseModel):
     amount: float = Field(..., gt=0)
     category: str = Field(..., min_length=1, max_length=50)
     description: Optional[str] = Field(None, max_length=500)
-    date: date
+    date: dt_date
 
 class ExpenseUpdate(BaseModel):
     amount: Optional[float] = Field(None, gt=0)
     category: Optional[str] = Field(None, min_length=1, max_length=50)
     description: Optional[str] = Field(None, max_length=500)
-    date: Optional[date] = None
+    date: Optional[dt_date] = None
 
 class ExpenseResponse(BaseModel):
     id: int
@@ -40,7 +40,7 @@ class ExpenseResponse(BaseModel):
     amount: float
     category: str
     description: Optional[str]
-    date: date
+    date: dt_date
     created_at: datetime
     updated_at: datetime
 
@@ -53,10 +53,23 @@ class CategorySummary(BaseModel):
     total: float
     count: int
 
+class CategoryCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+
+class CategoryResponse(BaseModel):
+    id: int
+    name: str
+    created_at: datetime
+
 class ExpenseSummary(BaseModel):
     total_spent: float
     transaction_count: int
     categories: list[CategorySummary]
+
+class PeriodSummary(BaseModel):
+    day_total: float
+    week_total: float
+    month_total: float
 
 # Response Models
 class TokenResponse(BaseModel):

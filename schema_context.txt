@@ -1,0 +1,22 @@
+Database Schema (NeonDB)
+========================
+
+Table: users
+--------------------
+  - id: integer NOT NULL DEFAULT nextval('users_id_seq'::regclass)
+  - name: character varying(100) NOT NULL
+  - email: character varying(100) NOT NULL
+  - password: character varying(255) NOT NULL
+  - created_at: timestamp without time zone NULL DEFAULT CURRENT_TIMESTAMP
+
+Table: expenses
+--------------------
+  - id: integer NOT NULL DEFAULT nextval('expenses_id_seq'::regclass)
+  - user_id: integer NOT NULL
+  - amount: numeric NOT NULL
+  - category: character varying(50) NOT NULL
+  - description: text NULL
+  - date: date NOT NULL
+  - created_at: timestamp without time zone NULL DEFAULT CURRENT_TIMESTAMP
+  - updated_at: timestamp without time zone NULL DEFAULT CURRENT_TIMESTAMP
+
